@@ -29,12 +29,11 @@ func (wl *WADLoader) openAndLoad(wadFilename string) {
 	wp.setupByteReader(wl.WADBuffer)
 	wl.WADHeader = wp.readHeaderData()
 
+	fmt.Println("WAD Filename:", wl.WADFilename)
 	fmt.Println("WAD Type:", string(wl.WADHeader.WadType[:]))
-	fmt.Println("WAD Dirs:", wl.WADHeader.DirectoryEntries)
-	fmt.Println("WAD Dir offset:", wl.WADHeader.DirectoryOffset)
+	fmt.Println("Lumps:", wl.WADHeader.DirectoryEntries)
 
 	wl.readWADDirectories()
-	fmt.Println(wl.WADDirectories[0])
 
 }
 
