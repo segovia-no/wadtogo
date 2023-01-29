@@ -7,7 +7,6 @@ import (
 )
 
 func dumpLumpsToTextFile(filename string, lumps WADDirectories) {
-
 	os.Remove(filename)
 	file, err := os.Create(filename)
 
@@ -35,4 +34,5 @@ func dumpLumpsToTextFile(filename string, lumps WADDirectories) {
 		return
 	}
 
+	fmt.Println("[Info] Lumps dumped into", filename)
 }
