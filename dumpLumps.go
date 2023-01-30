@@ -36,3 +36,30 @@ func dumpLumpsToTextFile(filename string, lumps WADDirectories) {
 
 	fmt.Println("[Info] Lumps dumped into", filename)
 }
+
+func dumpMapNamesToTextFile(filename string, maps []MapDirectory) {
+	os.Remove(filename)
+	file, err := os.Create(filename)
+
+	if err != nil {
+		fmt.Println("[Error] Cannot create a file called", filename, err)
+		return
+	}
+
+	defer file.Close()
+
+	var errWrite error
+
+	_, errWrite = file.WriteString("Map list\n")
+
+	for _, m := range maps {
+		_, errWrite = file.WriteString(m.MapName + "\n")
+	}
+
+	if errWrite != nil {
+		fmt.Println("[Error] Cannot add map data to dump file", filename, err)
+		return
+	}
+
+	fmt.Println("[Info] Map list dumped into", filename)
+}
