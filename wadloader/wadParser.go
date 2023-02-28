@@ -39,18 +39,18 @@ func (wp *WADParser) readHeaderData() WADHeader {
 }
 
 
-type DirectoryData struct {
+type Lump struct {
 	LumpOffset uint32
 	LumpSize uint32
 	LumpName [8]byte
 }
 
-func (wp *WADParser) readDirectoryData(seekAt int64) DirectoryData {
+func (wp *WADParser) readDirectoryData(seekAt int64) Lump {
 	wp.checkValidByteReader()
 
 	wp.byteReader.Seek(seekAt, io.SeekStart)
 	
-	var directoryData DirectoryData
+	var directoryData Lump
 	err := binary.Read(wp.byteReader, binary.LittleEndian, &directoryData)
 
 	if err != nil {

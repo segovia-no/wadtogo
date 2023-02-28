@@ -37,7 +37,7 @@ func dumpLumpsToTextFile(filename string, lumps WADDirectories) {
 	fmt.Println("[Info] Lumps dumped into", filename)
 }
 
-func dumpMapNamesToTextFile(filename string, maps []MapDirectory) {
+func dumpMapNamesToTextFile(filename string, maps []MapLump) {
 	os.Remove(filename)
 	file, err := os.Create(filename)
 

@@ -14,7 +14,7 @@ type WADLoader struct {
 	WADHeader WADHeader
 	WADDirectories WADDirectories
 
-	Maps []MapDirectory
+	Maps []MapLump
 }
 
 func (wl *WADLoader) OpenAndLoad(wadFilename string) {
@@ -39,7 +39,7 @@ func (wl *WADLoader) OpenAndLoad(wadFilename string) {
 	wl.detectMaps()
 }
 
-type WADDirectories []DirectoryData
+type WADDirectories []Lump
 
 func (wl *WADLoader) readWADDirectories() {
 	if wl.WADBuffer == nil || wl.WADHeader.DirectoryEntries < 1 {
@@ -55,9 +55,9 @@ func (wl *WADLoader) readWADDirectories() {
 	}
 }
 
-type MapDirectory struct {
+type MapLump struct {
 	MapName string
-	Lumps []*DirectoryData
+	Lumps []*Lump
 }
 
 func (wl *WADLoader) detectMaps() {
@@ -72,7 +72,7 @@ func (wl *WADLoader) detectMaps() {
 			continue
 		}
 
-		var currentMapDirectory MapDirectory
+		var currentMapDirectory MapLump
 
 		neededMapLumps := []string{"THINGS", "LINEDEFS", "SIDEDEFS", "VERTEXES", "SEGS", "SSECTORS", "NODES", "SECTORS", "REJECT", "BLOCKMAP"}
 
