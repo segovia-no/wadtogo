@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"strings"
 )
 
 var wp WADParser
@@ -12,9 +13,10 @@ type WADLoader struct {
 	WADBuffer []byte
 	WADFilename string
 	WADHeader WADHeader
-	WADDirectories WADDirectories
+	WADLumps WADLumps
 
 	Maps []MapLump
+	Music []MusicLump
 }
 
 func (wl *WADLoader) OpenAndLoad(wadFilename string) {
@@ -33,25 +35,30 @@ func (wl *WADLoader) OpenAndLoad(wadFilename string) {
 
 	fmt.Println("WAD Filename:", wl.WADFilename)
 	fmt.Println("WAD Type:", string(wl.WADHeader.WadType[:]))
-	fmt.Println("Lumps:", wl.WADHeader.DirectoryEntries)
+	fmt.Println("Lumps:", wl.WADHeader.LumpEntries)
 
-	wl.readWADDirectories()
+	wl.readWADLumps()
 	wl.detectMaps()
+
+	musicLumps, _ := getMusicLumps(wl.WADLumps)
+	wl.Music = append(wl.Music, musicLumps...)
+
+	dumpSongNamesToTextFile("songlist.txt", wl.Music)
 }
 
-type WADDirectories []Lump
+type WADLumps []Lump
 
-func (wl *WADLoader) readWADDirectories() {
-	if wl.WADBuffer == nil || wl.WADHeader.DirectoryEntries < 1 {
-		fmt.Println("[Error] readWADDirectories: Insufficient data to read WAD Directories")
+func (wl *WADLoader) readWADLumps() {
+	if wl.WADBuffer == nil || wl.WADHeader.LumpEntries < 1 {
+		fmt.Println("[Error] readWADLumps: Insufficient data to read WAD Directories")
 		os.Exit(0)
 	}
 
-	dirOffset := int64(wl.WADHeader.DirectoryOffset)
+	dirOffset := int64(wl.WADHeader.LumpDirectoryOffset)
 
-	for i := 0; i < int(wl.WADHeader.DirectoryEntries); i++ {
-		dirData := wp.readDirectoryData(dirOffset + int64(i*16))
-		wl.WADDirectories = append(wl.WADDirectories, dirData)
+	for i := 0; i < int(wl.WADHeader.LumpEntries); i++ {
+		dirData := wp.readLumpData(dirOffset + int64(i*16))
+		wl.WADLumps = append(wl.WADLumps, dirData)
 	}
 }
 
@@ -61,22 +68,22 @@ type MapLump struct {
 }
 
 func (wl *WADLoader) detectMaps() {
-	if len(wl.WADDirectories) < 1 {
+	if len(wl.WADLumps) < 1 {
 		fmt.Println("[Warn] detectMaps: No Lumps detected loaded, cannot detect maps!")
 		return
 	}
 	
 	// map lumps use a 0 byte marker and complies with the minimum types of lumps
-	for idx, lump := range wl.WADDirectories {
+	for idx, lump := range wl.WADLumps {
 		if lump.LumpSize != 0 {
 			continue
 		}
 
-		var currentMapDirectory MapLump
+		var currentMapLumps MapLump
 
 		neededMapLumps := []string{"THINGS", "LINEDEFS", "SIDEDEFS", "VERTEXES", "SEGS", "SSECTORS", "NODES", "SECTORS", "REJECT", "BLOCKMAP"}
 
-		for _, nextLump := range wl.WADDirectories[idx + 1:] {
+		for _, nextLump := range wl.WADLumps[idx + 1:] {
 			if nextLump.LumpSize == 0 {
 				break
 			}
@@ -85,16 +92,61 @@ func (wl *WADLoader) detectMaps() {
 				nextLumpNameStr := string(bytes.Trim(nextLump.LumpName[:], "\x00"))
 
 				if neededMapLumps[i] == string(nextLumpNameStr) {
-					currentMapDirectory.Lumps = append(currentMapDirectory.Lumps, &nextLump)
+					currentMapLumps.Lumps = append(currentMapLumps.Lumps, &nextLump)
 					neededMapLumps = append(neededMapLumps[:i], neededMapLumps[i+1:]... )
 				}
 
 				if len(neededMapLumps) < 1 {
-					currentMapDirectory.MapName = string(bytes.Trim(lump.LumpName[:], "\x00"))
-					wl.Maps = append(wl.Maps, currentMapDirectory)
+					currentMapLumps.MapName = string(bytes.Trim(lump.LumpName[:], "\x00"))
+					wl.Maps = append(wl.Maps, currentMapLumps)
 					break
 				}
 			}
 		}
 	}
+}
+
+
+type MusicLump struct {
+	name string
+	format string
+	lump Lump
+}
+
+func getMusicLumps(wl WADLumps) ([]MusicLump, bool) {
+	if len(wl) < 1 {
+		fmt.Println("[Warn] getMusicLumps: No Lumps detected loaded, cannot detect music!")
+		return nil, true
+	}
+
+	var musicLumps []MusicLump
+
+	for _, lump := range wl {
+		if lump.LumpSize == 0 {
+			continue
+		}
+		
+		// music lumps names start with "D_"
+		lumpName := string(bytes.Trim(lump.LumpName[:], "\x00"))
+
+		if !(strings.Contains(lumpName, "D_")) {
+			continue
+		}
+
+		musicFormat, err := wp.getMusicFormatFromLump(&lump)
+		if err != nil {
+			errinfo := fmt.Sprintf("[Warn] getMusicLumps: Cannot detect music format for %v, omitting this lump.", lumpName)
+			fmt.Println(errinfo)
+		}
+
+		curMusicLump := MusicLump {
+			name: lumpName,
+			format: musicFormat,
+			lump: lump,
+		}
+
+		musicLumps = append(musicLumps, curMusicLump)
+	}
+
+	return musicLumps, false
 }

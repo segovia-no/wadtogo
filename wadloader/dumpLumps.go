@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-func dumpLumpsToTextFile(filename string, lumps WADDirectories) {
+func dumpLumpsToTextFile(filename string, lumps WADLumps) {
 	os.Remove(filename)
 	file, err := os.Create(filename)
 
@@ -62,4 +62,31 @@ func dumpMapNamesToTextFile(filename string, maps []MapLump) {
 	}
 
 	fmt.Println("[Info] Map list dumped into", filename)
+}
+
+func dumpSongNamesToTextFile(filename string, songs []MusicLump) {
+	os.Remove(filename)
+	file, err := os.Create(filename)
+
+	if err != nil {
+		fmt.Println("[Error] Cannot create a file called", filename, err)
+		return
+	}
+
+	defer file.Close()
+
+	var errWrite error
+
+	_, errWrite = file.WriteString("Song list | Format \n")
+
+	for _, m := range songs {
+		_, errWrite = file.WriteString(m.name + " | " + m.format + "\n")
+	}
+
+	if errWrite != nil {
+		fmt.Println("[Error] Cannot add song data to dump file", filename, err)
+		return
+	}
+
+	fmt.Println("[Info] Song list dumped into", filename)
 }

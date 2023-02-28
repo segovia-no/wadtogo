@@ -1,4 +1,4 @@
-package main
+package Map
 
 type Map struct {
 	Name string
