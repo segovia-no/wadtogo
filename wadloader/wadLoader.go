@@ -1,4 +1,4 @@
-package main
+package wadloader
 
 import (
 	"bytes"
@@ -17,7 +17,7 @@ type WADLoader struct {
 	Maps []MapDirectory
 }
 
-func (wl *WADLoader) openAndLoad(wadFilename string) {
+func (wl *WADLoader) OpenAndLoad(wadFilename string) {
 	wl.WADFilename = wadFilename
 
 	wadBuffer, readErr := os.ReadFile(wl.WADFilename)
