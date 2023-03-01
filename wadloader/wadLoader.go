@@ -135,7 +135,7 @@ func getMusicLumps(wl WADLumps) ([]MusicLump, bool) {
 
 		musicFormat, err := wp.getMusicFormatFromLump(&lump)
 		if err != nil {
-			errinfo := fmt.Sprintf("[Warn] getMusicLumps: Cannot detect music format for %v, omitting this lump.", lumpName)
+			errinfo := fmt.Sprintf("[Warn] getMusicLumps: Cannot detect music format for %v, omitting this lump., %v", lumpName, err)
 			fmt.Println(errinfo)
 		}
 
