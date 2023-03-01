@@ -129,7 +129,7 @@ func getMusicLumps(wl WADLumps) ([]MusicLump, bool) {
 		// music lumps names start with "D_"
 		lumpName := string(bytes.Trim(lump.LumpName[:], "\x00"))
 
-		if !(strings.Contains(lumpName, "D_")) {
+		if !(strings.HasPrefix(lumpName, "D_")) {
 			continue
 		}
 
