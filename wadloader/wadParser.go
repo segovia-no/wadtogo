@@ -82,7 +82,7 @@ func (wp *WADParser) getMusicFormatFromLump(lump *Lump) (string, error) {
 
 	musicFormat := string(header[:])
 
-	if strings.Contains(musicFormat, "MTHD") {
+	if strings.Contains(musicFormat, "MThd") {
 		return "MIDI", nil
 	} else if strings.Contains(musicFormat, "MUS") {
 		return "MUS", nil
