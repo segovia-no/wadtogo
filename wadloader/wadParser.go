@@ -47,7 +47,7 @@ type Lump struct {
 	LumpName [8]byte
 }
 
-func (wp *WADParser) readLumpData(seekAt int64) Lump {
+func (wp *WADParser) readLumpInfo(seekAt int64) Lump {
 	wp.checkValidByteReader()
 
 	wp.byteReader.Seek(seekAt, io.SeekStart)
@@ -56,7 +56,7 @@ func (wp *WADParser) readLumpData(seekAt int64) Lump {
 	err := binary.Read(wp.byteReader, binary.LittleEndian, &lumpData)
 
 	if err != nil {
-		fmt.Println("[Error] readLumpData: Invalid data when reading WADs lump data:", err)
+		fmt.Println("[Error] readLumpInfo: Invalid data when reading WADs lump data:", err)
 		os.Exit(1)
 	}
 

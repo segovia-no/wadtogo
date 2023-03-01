@@ -57,7 +57,7 @@ func (wl *WADLoader) readWADLumps() {
 	dirOffset := int64(wl.WADHeader.LumpDirectoryOffset)
 
 	for i := 0; i < int(wl.WADHeader.LumpEntries); i++ {
-		dirData := wp.readLumpData(dirOffset + int64(i*16))
+		dirData := wp.readLumpInfo(dirOffset + int64(i*16))
 		wl.WADLumps = append(wl.WADLumps, dirData)
 	}
 }
