@@ -43,13 +43,8 @@ func (wl *WADLoader) OpenAndLoad(wadFilename string) {
 	musicLumps, _ := getMusicLumps(wl.WADLumps)
 	wl.Music = append(wl.Music, musicLumps...)
 
-	// Music export example
-	musicLump, err := wl.GetMusicLumpFromSongName("D_RUNNIN")
-	if err != nil {
-		fmt.Println("[Error] GetMusicLumpFromSongName: ", err)
-		os.Exit(0)
-	}
-	wp.ExportSong(musicLump)
+	// All music export example
+	wl.ExportAllSongs(&wp)
 }
 
 type WADLumps []Lump

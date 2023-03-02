@@ -34,6 +34,20 @@ func (wp *WADParser) ExportSong(song *MusicLump) error {
 	return nil
 }
 
+func (wl *WADLoader) ExportAllSongs(wp *WADParser) error {
+	wp.checkValidByteReader()
+
+	if len(wl.Music) < 1 {
+		return errors.New("[Error] ExportAllSongs: No music data inside WAD Loader")
+	}
+
+	for _, song := range wl.Music {
+		wp.ExportSong(&song)
+	}
+
+	return nil
+}
+
 func (wl *WADLoader) GetMusicLumpFromSongName(songName string) (*MusicLump, error) {
 
 	var musicLump MusicLump
