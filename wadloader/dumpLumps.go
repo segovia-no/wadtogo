@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-func dumpLumpsToTextFile(filename string, lumps WADLumps) {
+func DumpLumpsToTextFile(filename string, lumps WADLumps) {
 	os.Remove(filename)
 	file, err := os.Create(filename)
 
@@ -37,7 +37,7 @@ func dumpLumpsToTextFile(filename string, lumps WADLumps) {
 	fmt.Println("[Info] Lumps dumped into", filename)
 }
 
-func dumpMapNamesToTextFile(filename string, maps []MapLump) {
+func DumpMapNamesToTextFile(filename string, maps []MapLump) {
 	os.Remove(filename)
 	file, err := os.Create(filename)
 
@@ -64,7 +64,7 @@ func dumpMapNamesToTextFile(filename string, maps []MapLump) {
 	fmt.Println("[Info] Map list dumped into", filename)
 }
 
-func dumpSongNamesToTextFile(filename string, songs []MusicLump) {
+func DumpSongNamesToTextFile(filename string, songs []MusicLump) {
 	os.Remove(filename)
 	file, err := os.Create(filename)
 
