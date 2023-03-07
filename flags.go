@@ -10,7 +10,7 @@ type Flags struct {
 	WADFilename string
 	printWADMusicInfo bool
 	printWADMapsInfo bool
-	dumpWADInfo string
+	dumpLumpsInfo string
 	dumpWADMusicInfo string
 	dumpWADMapsInfo string
 }
@@ -18,7 +18,7 @@ type Flags struct {
 func (f *Flags) parseFlags() {
 	printWADMusicInfo := flag.Bool("musicinfo", false, "Print WAD's music info via console")
 	printWADMapsInfo  := flag.Bool("mapsinfo", false, "Print WAD's maps info via console")
-	dumpWADInfo       := flag.String("wadinfo-dump", "", "Dump WAD's info to file")
+	dumpLumpsInfo       := flag.String("lumpsinfo-dump", "", "Dump WAD's lumps info to file")
 	dumpWADMusicInfo  := flag.String("musicinfo-dump", "", "Dump WAD's music info to file")
 	dumpWADMapsInfo   := flag.String("mapsinfo-dump", "", "Dump WAD's maps info to file")
 
@@ -26,7 +26,7 @@ func (f *Flags) parseFlags() {
 
 	f.printWADMusicInfo = *printWADMusicInfo
 	f.printWADMapsInfo = *printWADMapsInfo
-	f.dumpWADInfo = *dumpWADInfo
+	f.dumpLumpsInfo = *dumpLumpsInfo
 	f.dumpWADMusicInfo = *dumpWADMusicInfo
 	f.dumpWADMapsInfo = *dumpWADMapsInfo
 

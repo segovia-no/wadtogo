@@ -35,8 +35,8 @@ func main() {
 	}
 
 	// Command execution
-	if flagReader.dumpWADInfo != "" {
-		wl.DumpLumpsToTextFile(flagReader.dumpWADInfo, wadLoader.WADLumps)
+	if flagReader.dumpLumpsInfo != "" {
+		wl.DumpLumpsToTextFile(flagReader.dumpLumpsInfo, wadLoader.WADLumps)
 	}
 
 	if flagReader.printWADMusicInfo {
