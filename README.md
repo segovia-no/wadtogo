@@ -7,15 +7,27 @@ A WAD reader and extracting CLI tool using Golang.
 Invoke WadToGo from the command line referencing the executable and passing the filename of the WAD you want to read as a parameter.
 
 ```bash
-./wadtogo <WAD Filename>
+./wadtogo [options] <WAD Filename>
+```
+
+#### Options
+
+```
+-musicinfo                  Print the songs names and format contained within the WAD file.
+-mapsinfo                   Print the map names within the WAD file.
+-wadinfo-dump <filename>    Dumps the WAD basic info to the specified filename.
+-musicinfo-dump <filename>  Dumps the songs names and format to the specified filename
+-mapsinfo-dump  <filename>  Dumps the map names to the specified filename
 ```
 
 _Example_:
 ```bash
-$ ./wadtogo DOOM.WAD
+$ ./wadtogo -musicinfo-dump musicinfo.txt DOOM.WAD
 WAD Filename: DOOM.WAD
 WAD Type: IWAD
 Lumps: 2306
+--------------------------
+[Info] Song list dumped into musicinfo.txt
 ```
 
 ## Build
