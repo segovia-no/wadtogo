@@ -6,11 +6,13 @@ import (
 	wl "github.com/segovia-no/wadtogo/wadloader"
 )
 
-var flagReader FlagReader
+var flagReader Flags
 var wadLoader wl.WADLoader
 
 func main() {
 	fmt.Println("WADToGo - Another WAD Tool")
-	wadFilename := flagReader.getWADFilenameFromFlag()
-	wadLoader.OpenAndLoad(wadFilename)
+	fmt.Println("--------------------------")
+
+	flagReader.parseFlags()
+	wadLoader.OpenAndLoad(flagReader.WADFilename)
 }

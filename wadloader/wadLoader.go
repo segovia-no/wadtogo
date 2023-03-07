@@ -44,7 +44,7 @@ func (wl *WADLoader) OpenAndLoad(wadFilename string) {
 	wl.Music = append(wl.Music, musicLumps...)
 
 	// All music export example
-	wl.ExportAllSongs(&wp)
+	// wl.ExportAllSongs(&wp)
 }
 
 type WADLumps []Lump
