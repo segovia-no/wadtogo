@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-func PrintMapName(maps []MapLump) {
+func PrintMapNames(maps []MapLump) {
 	fmt.Println("Map List")
 	for _, m := range maps {
 		fmt.Println(m.MapName)

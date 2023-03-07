@@ -19,7 +19,7 @@ func DumpLumpsToTextFile(filename string, lumps WADLumps) {
 
 	var errWrite error
 
-	_, errWrite = file.WriteString("Lump name | Size\n")
+	_, errWrite = file.WriteString("Lump name | Size (bytes)\n")
 
 	for _, lump := range lumps {
 

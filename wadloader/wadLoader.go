@@ -32,24 +32,11 @@ func (wl *WADLoader) OpenAndLoad(wadFilename string) {
 
 	wp.setupByteReader(wl.WADBuffer)
 	wl.WADHeader = wp.readHeaderData()
-
-	fmt.Println("WAD Filename:", wl.WADFilename)
-	fmt.Println("WAD Type:", string(wl.WADHeader.WadType[:]))
-	fmt.Println("Lumps:", wl.WADHeader.LumpEntries)
-
-	wl.readWADLumps()
-	wl.detectMaps()
-
-	musicLumps, _ := getMusicLumps(wl.WADLumps)
-	wl.Music = append(wl.Music, musicLumps...)
-
-	// All music export example
-	// wl.ExportAllSongs(&wp)
 }
 
 type WADLumps []Lump
 
-func (wl *WADLoader) readWADLumps() {
+func (wl *WADLoader) ReadWADLumps() {
 	if wl.WADBuffer == nil || wl.WADHeader.LumpEntries < 1 {
 		fmt.Println("[Error] readWADLumps: Insufficient data to read WAD Directories")
 		os.Exit(0)
@@ -68,9 +55,9 @@ type MapLump struct {
 	Lumps []*Lump
 }
 
-func (wl *WADLoader) detectMaps() {
+func (wl *WADLoader) DetectMaps() {
 	if len(wl.WADLumps) < 1 {
-		fmt.Println("[Warn] detectMaps: No Lumps detected loaded, cannot detect maps!")
+		fmt.Println("[Warn] DetectMaps: No Lumps detected loaded, cannot detect maps!")
 		return
 	}
 	
@@ -114,7 +101,7 @@ type MusicLump struct {
 	lump Lump
 }
 
-func getMusicLumps(wl WADLumps) ([]MusicLump, bool) {
+func GetMusicLumps(wl WADLumps) ([]MusicLump, bool) {
 	if len(wl) < 1 {
 		fmt.Println("[Warn] getMusicLumps: No Lumps detected loaded, cannot detect music!")
 		return nil, true
