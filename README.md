@@ -13,11 +13,17 @@ Invoke WadToGo from the command line referencing the executable and passing the 
 #### Options
 
 ```
--musicinfo                  Print the songs names and format contained within the WAD file.
--mapsinfo                   Print the map names within the WAD file.
--lumpsinfo-dump <filename>  Dumps the WAD lumps list to the specified filename.
--musicinfo-dump <filename>  Dumps the songs names and format to the specified filename
--mapsinfo-dump  <filename>  Dumps the map names to the specified filename
+
+// Available WAD info options
+-musicinfo                    Print the songs names and format contained within the WAD file.
+-mapsinfo                     Print the map names within the WAD file.
+-lumpsinfo-dump <filename>    Dumps the WAD lumps list to the specified filename.
+-musicinfo-dump <filename>    Dumps the songs names and format to the specified filename
+-mapsinfo-dump  <filename>    Dumps the map names to the specified filename
+
+// Available export options
+-music-export   <folder name> Dumps the MIDI/MUS files from the WAD into the specified folder
+
 ```
 
 _Example_:

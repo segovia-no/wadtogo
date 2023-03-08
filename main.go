@@ -25,7 +25,7 @@ func main() {
 	wadLoader.ReadWADLumps()
 
 	// Setup corresponding data depending on flags
-	if flagReader.printWADMusicInfo || flagReader.dumpWADMusicInfo != "" {
+	if flagReader.printWADMusicInfo || flagReader.dumpWADMusicInfo != "" || flagReader.exportMusic != "" {
 		musicLumps, _ := wl.GetMusicLumps(wadLoader.WADLumps)
 		wadLoader.Music = append(wadLoader.Music, musicLumps...)
 	}
@@ -53,5 +53,9 @@ func main() {
 
 	if flagReader.dumpWADMapsInfo != "" {
 		wl.DumpMapNamesToTextFile(flagReader.dumpWADMapsInfo, wadLoader.Maps)
+	}
+
+	if flagReader.exportMusic != "" {
+		wadLoader.ExportAllSongs(flagReader.exportMusic)
 	}
 }
