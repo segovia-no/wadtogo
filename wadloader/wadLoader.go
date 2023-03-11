@@ -139,8 +139,6 @@ func (wl *WADLoader) LoadMapLumps(allMapsRaw []MapRawLumps) {
 			}
 		}
 
-		fmt.Println("Map ", newMap.Name, "THINGS ", len(newMap.Things), "LINEDEFS ", len(newMap.Linedefs), "SIDEDEFS ", len(newMap.Sidedefs), "VERTEXES ", len(newMap.Vertexes), "SEGS ", len(newMap.Segs), "SSECTORS ", len(newMap.SSectors), "NODES ", len(newMap.Nodes), "SECTORS ", len(newMap.Sectors))
-
 		wl.Maps = append(wl.Maps, newMap)
 	}
 }
