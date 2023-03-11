@@ -118,6 +118,7 @@ func (wl *WADLoader) LoadMapLumps(allMapsRaw []MapRawLumps) {
 
 			switch lumpNameStr {
 			case "THINGS":
+				newMap.Things = wp.parseMapThings(currLump)
 			case "LINEDEFS":
 			case "SIDEDEFS":
 			case "VERTEXES":
