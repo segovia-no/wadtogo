@@ -15,7 +15,7 @@ type WADLoader struct {
 	WADHeader WADHeader
 	WADLumps WADLumps
 
-	Maps []MapLump
+	Maps []MapRawLumps
 	Music []MusicLump
 }
 
@@ -50,7 +50,7 @@ func (wl *WADLoader) ReadWADLumps() {
 	}
 }
 
-type MapLump struct {
+type MapRawLumps struct {
 	MapName string
 	Lumps []*Lump
 }
@@ -67,7 +67,7 @@ func (wl *WADLoader) DetectMaps() {
 			continue
 		}
 
-		var currentMapLumps MapLump
+		var currentMapLumps MapRawLumps
 
 		neededMapLumps := []string{"THINGS", "LINEDEFS", "SIDEDEFS", "VERTEXES", "SEGS", "SSECTORS", "NODES", "SECTORS", "REJECT", "BLOCKMAP"}
 
