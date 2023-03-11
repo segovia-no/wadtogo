@@ -15,7 +15,7 @@ type WADLoader struct {
 	WADHeader WADHeader
 	WADLumps WADLumps
 
-	Maps []MapRawLumps
+	Maps []Map
 	Music []MusicLump
 }
 
@@ -50,25 +50,32 @@ func (wl *WADLoader) ReadWADLumps() {
 	}
 }
 
-type MapRawLumps struct {
-	MapName string
-	Lumps []*Lump
+func (wl *WADLoader) LoadMaps() {
+	mapLumps := wl.DetectMaps()
+	wl.LoadMapLumps(mapLumps)
 }
 
-func (wl *WADLoader) DetectMaps() {
+type MapRawLumps struct {
+	MapName string
+	Lumps []Lump
+}
+
+func (wl *WADLoader) DetectMaps() []MapRawLumps {
+
+	var rawMaps []MapRawLumps
+
 	if len(wl.WADLumps) < 1 {
 		fmt.Println("[Warn] DetectMaps: No Lumps detected loaded, cannot detect maps!")
-		return
+		return rawMaps
 	}
 	
 	// map lumps use a 0 byte marker and complies with the minimum types of lumps
 	for idx, lump := range wl.WADLumps {
-		if lump.LumpSize != 0 {
+		if lump.LumpSize != 0 || !strings.HasPrefix(string(lump.LumpName[:]), "E") {
 			continue
 		}
 
 		var currentMapLumps MapRawLumps
-
 		neededMapLumps := []string{"THINGS", "LINEDEFS", "SIDEDEFS", "VERTEXES", "SEGS", "SSECTORS", "NODES", "SECTORS", "REJECT", "BLOCKMAP"}
 
 		for _, nextLump := range wl.WADLumps[idx + 1:] {
@@ -76,21 +83,56 @@ func (wl *WADLoader) DetectMaps() {
 				break
 			}
 
-			for i := 0; i < len(neededMapLumps); i++ {
-				nextLumpNameStr := string(bytes.Trim(nextLump.LumpName[:], "\x00"))
+			nextLumpNameStr := string(bytes.Trim(nextLump.LumpName[:], "\x00"))
 
+			for i := 0; i < len(neededMapLumps); i++ {
 				if neededMapLumps[i] == string(nextLumpNameStr) {
-					currentMapLumps.Lumps = append(currentMapLumps.Lumps, &nextLump)
+					currentMapLumps.Lumps = append(currentMapLumps.Lumps, nextLump)
 					neededMapLumps = append(neededMapLumps[:i], neededMapLumps[i+1:]... )
 				}
+			}
 
-				if len(neededMapLumps) < 1 {
-					currentMapLumps.MapName = string(bytes.Trim(lump.LumpName[:], "\x00"))
-					wl.Maps = append(wl.Maps, currentMapLumps)
-					break
-				}
+			if len(neededMapLumps) < 1 {
+				currentMapLumps.MapName = string(bytes.Trim(lump.LumpName[:], "\x00"))
+				rawMaps = append(rawMaps, currentMapLumps)
+				break
 			}
 		}
+	}
+
+	return rawMaps
+}
+
+func (wl *WADLoader) LoadMapLumps(allMapsRaw []MapRawLumps) {
+	if len(allMapsRaw) < 1 {
+		fmt.Println("[Warn] LoadMapLumps: No maps inside the provided slice")
+		return
+	}
+
+	for _, currMap := range allMapsRaw {
+		var newMap Map
+		newMap.Name = currMap.MapName
+
+		for _, currLump := range currMap.Lumps {
+			lumpNameStr := string(bytes.Trim(currLump.LumpName[:], "\x00"))
+
+			switch lumpNameStr {
+			case "THINGS":
+			case "LINEDEFS":
+			case "SIDEDEFS":
+			case "VERTEXES":
+			case "SEGS":
+			case "SSECTORS":
+			case "NODES":
+			case "SECTORS":
+			case "REJECT":
+			case "BLOCKMAP":
+				// TODO: Missing rest of implementations
+			}
+		}
+
+		wl.Maps = append(wl.Maps, newMap)
+		// fmt.Println(newMap.Things)
 	}
 }
 

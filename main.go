@@ -31,7 +31,7 @@ func main() {
 	}
 
 	if flagReader.printWADMapsInfo || flagReader.dumpWADMapsInfo != "" {
-		wadLoader.DetectMaps()
+		wadLoader.LoadMaps()
 	}
 
 	// Command execution
