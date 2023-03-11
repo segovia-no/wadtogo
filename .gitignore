@@ -2,3 +2,8 @@
 *.txt
 *.MIDI
 *.MUS
+
+# Build files
+wadtogo-darwin-*
+wadtogo-linux-*
+wadtogo-windows-*
