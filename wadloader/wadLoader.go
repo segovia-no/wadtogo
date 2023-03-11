@@ -120,17 +120,26 @@ func (wl *WADLoader) LoadMapLumps(allMapsRaw []MapRawLumps) {
 			case "THINGS":
 				newMap.Things = wp.parseMapThings(currLump)
 			case "LINEDEFS":
+				newMap.Linedefs = wp.parseMapLinedefs(currLump)
 			case "SIDEDEFS":
+				newMap.Sidedefs = wp.parseMapSidedefs(currLump)
 			case "VERTEXES":
+				newMap.Vertexes = wp.parseMapVertexes(currLump)
 			case "SEGS":
+				newMap.Segs = wp.parseMapSegs(currLump)
 			case "SSECTORS":
+				newMap.SSectors = wp.parseMapSSectors(currLump)
 			case "NODES":
+				newMap.Nodes = wp.parseMapNodes(currLump)
 			case "SECTORS":
+				newMap.Sectors = wp.parseMapSectors(currLump)
 			case "REJECT":
 			case "BLOCKMAP":
 				// TODO: Missing rest of implementations
 			}
 		}
+
+		fmt.Println("Map ", newMap.Name, "THINGS ", len(newMap.Things), "LINEDEFS ", len(newMap.Linedefs), "SIDEDEFS ", len(newMap.Sidedefs), "VERTEXES ", len(newMap.Vertexes), "SEGS ", len(newMap.Segs), "SSECTORS ", len(newMap.SSectors), "NODES ", len(newMap.Nodes), "SECTORS ", len(newMap.Sectors))
 
 		wl.Maps = append(wl.Maps, newMap)
 	}
