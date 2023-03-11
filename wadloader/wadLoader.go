@@ -133,7 +133,6 @@ func (wl *WADLoader) LoadMapLumps(allMapsRaw []MapRawLumps) {
 		}
 
 		wl.Maps = append(wl.Maps, newMap)
-		// fmt.Println(newMap.Things)
 	}
 }
 
