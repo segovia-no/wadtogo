@@ -1,10 +1,13 @@
 package wadloader
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io"
 )
+
+var MapLumpsNames = []string{"THINGS", "LINEDEFS", "SIDEDEFS", "VERTEXES", "SEGS", "SSECTORS", "NODES", "SECTORS", "REJECT", "BLOCKMAP"}
 
 // Struct definitions for Map data
 type Map struct {
@@ -295,4 +298,15 @@ func (wp *WADParser) parseMapSectors(lump Lump) []Sector {
 	}
 
 	return readSector
+}
+
+// helper functions
+func IsLumpAMapLump(l *Lump) bool {
+	for _, v := range MapLumpsNames {
+		lumpName := string(bytes.Trim(l.LumpName[:], "\x00"))
+		if lumpName == v {
+			return true
+		}
+	}
+	return false
 }
