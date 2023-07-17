@@ -24,7 +24,7 @@ func (f *Flags) parseFlags() {
 	dumpWADMusicInfo   := flag.String("musicinfo-dump", "", "Dump WAD's music info to file")
 	dumpWADMapsInfo    := flag.String("mapsinfo-dump", "", "Dump WAD's maps info to file")
 	exportMusic        := flag.String("music-export", "", "Export WAD's music to file")
-	exportSprites			 := flag.String("sprite-export", "", "Export WAD's sprites to file")
+	exportSprites      := flag.String("sprite-export", "", "Export WAD's sprites to file")
 
 	flag.Parse()
 
