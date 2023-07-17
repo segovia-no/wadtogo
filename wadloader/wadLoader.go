@@ -15,8 +15,10 @@ type WADLoader struct {
 	WADHeader WADHeader
 	WADLumps WADLumps
 
+	Palette []Palette
 	Maps []Map
 	Music []MusicLump
+	Graphics []Patch
 }
 
 func (wl *WADLoader) OpenAndLoad(wadFilename string) {
@@ -76,7 +78,9 @@ func (wl *WADLoader) DetectMaps() []MapRawLumps {
 		}
 
 		var currentMapLumps MapRawLumps
-		neededMapLumps := []string{"THINGS", "LINEDEFS", "SIDEDEFS", "VERTEXES", "SEGS", "SSECTORS", "NODES", "SECTORS", "REJECT", "BLOCKMAP"}
+
+		var neededMapLumps []string
+		neededMapLumps = append(neededMapLumps, MapLumpsNames...)
 
 		for _, nextLump := range wl.WADLumps[idx + 1:] {
 			if nextLump.LumpSize == 0 {

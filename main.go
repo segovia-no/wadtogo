@@ -34,6 +34,10 @@ func main() {
 		wadLoader.LoadMaps()
 	}
 
+	if flagReader.exportSprites != "" {
+		wadLoader.LoadPalette()
+	}
+
 	// Command execution
 	if flagReader.dumpLumpsInfo != "" {
 		wl.DumpLumpsToTextFile(flagReader.dumpLumpsInfo, wadLoader.WADLumps)
