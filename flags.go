@@ -14,6 +14,7 @@ type Flags struct {
 	dumpWADMusicInfo string
 	dumpWADMapsInfo string
 	exportMusic string
+	exportSprites string
 }
 
 func (f *Flags) parseFlags() {
@@ -23,6 +24,7 @@ func (f *Flags) parseFlags() {
 	dumpWADMusicInfo   := flag.String("musicinfo-dump", "", "Dump WAD's music info to file")
 	dumpWADMapsInfo    := flag.String("mapsinfo-dump", "", "Dump WAD's maps info to file")
 	exportMusic        := flag.String("music-export", "", "Export WAD's music to file")
+	exportSprites      := flag.String("sprite-export", "", "Export WAD's sprites to file")
 
 	flag.Parse()
 
@@ -32,6 +34,7 @@ func (f *Flags) parseFlags() {
 	f.dumpWADMusicInfo  = *dumpWADMusicInfo
 	f.dumpWADMapsInfo   = *dumpWADMapsInfo
 	f.exportMusic       = *exportMusic
+	f.exportSprites     = *exportSprites
 
 	flagTail := flag.Args()
 	f.parseWADFilename(flagTail)

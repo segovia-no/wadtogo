@@ -3,7 +3,6 @@ package wadloader
 import (
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 )
@@ -63,8 +62,6 @@ func (wl *WADLoader) ExportAllSongs(folderName string) error {
 	for _, song := range wl.Music {
 		wp.ExportSong(&song, folderName)
 	}
-
-	fmt.Println("[Info] ExportAllSongs: All songs exported successfully")
 
 	return nil
 }

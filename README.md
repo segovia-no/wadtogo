@@ -23,6 +23,7 @@ Invoke WadToGo from the command line referencing the executable and passing the 
 
 // Available export options
 -music-export   <folder name> Dumps the MIDI/MUS files from the WAD into the specified folder
+-sprite-export  <folder name> Dumps the sprites from the WAD into the specified folder as PNG's
 
 ```
 

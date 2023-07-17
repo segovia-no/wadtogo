@@ -31,7 +31,19 @@ func main() {
 	}
 
 	if flagReader.printWADMapsInfo || flagReader.dumpWADMapsInfo != "" {
-		wadLoader.DetectMaps()
+		wadLoader.LoadMaps()
+	}
+
+	if flagReader.exportSprites != "" {
+		wadLoader.LoadPalette()
+		wadLoader.LoadGraphics()
+
+		err := wadLoader.ExportAllSprites(flagReader.exportSprites)
+		if err != nil {
+			fmt.Println("[Error] Cannot export sprites - " + err.Error())
+		}
+
+		fmt.Println("Sprites exported successfully")
 	}
 
 	// Command execution
@@ -56,6 +68,10 @@ func main() {
 	}
 
 	if flagReader.exportMusic != "" {
-		wadLoader.ExportAllSongs(flagReader.exportMusic)
+		err := wadLoader.ExportAllSongs(flagReader.exportMusic)
+		if err != nil {
+			fmt.Println("[Error] Cannot export songs - " + err.Error())
+		}
+		fmt.Println("All songs exported successfully")
 	}
 }
