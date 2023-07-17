@@ -194,7 +194,12 @@ func GetMusicLumps(wl WADLumps) ([]MusicLump, bool) {
 }
 
 func (wl *WADLoader) LoadGraphics() {
-	sprites, patches := wl.DetectGraphics()
+	sprites, patches, err := wl.DetectGraphics()
+	if err != nil {
+		fmt.Println("[Error] LoadGraphics: Cannot detect graphics lumps, aborting.", err)
+		os.Exit(1)
+	}
+
 	wl.Sprites = sprites
 	wl.Patches = patches
 }

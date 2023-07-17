@@ -102,33 +102,45 @@ func (wl *WADLoader) LoadPalette() {
 	}
 }
 
-func (wl *WADLoader) DetectGraphics() ([]Patch, []Patch) {
+func (wl *WADLoader) DetectGraphics() ([]Patch, []Patch, error) {
 
 	var sprites []Patch
 	// var flats []Patch // TODO: this is not a patch, but raw data
 	var patches []Patch
 
 	if len(wl.WADLumps) < 1 {
-		fmt.Println("[Warn] DetectGraphics: No Lumps loaded, cannot detect graphic lumps!")
-		return sprites, patches
+		return sprites, patches, errors.New("[Warn] DetectGraphics: No Lumps loaded, cannot detect graphic lumps")
 	}
 
 	spriteLumps, err := getSpriteLumps(wl.WADLumps)
 	if err != nil {
-		return sprites, patches
+		return sprites, patches, errors.New("[Warn] DetectGraphics: Cannot get sprite lumps")
 	}
 
 	for _, lump := range spriteLumps {
 		spritePatch, err := parsePatchLump(lump)
 		if err != nil {
-			fmt.Println("[Error] DetectGraphics: Cannot parse a sprite patch lump - " + err.Error())
-			return sprites, patches
+			return sprites, patches, errors.New("[Error] DetectGraphics: Cannot parse a sprite patch lump - " + err.Error())
 		}
 
 		sprites = append(sprites, spritePatch)
 	}
 
-	return sprites, patches
+	patchLumps, err := getPatchLumps(wl.WADLumps)
+	if err != nil {
+		return sprites, patches, errors.New("[Warn] DetectGraphics: Cannot detect patch lumps")
+	}
+
+	for _, lump := range patchLumps {
+		patch, err := parsePatchLump(lump)
+		if err != nil {
+			return sprites, patches, errors.New("[Error] DetectGraphics: Cannot parse a patch lump - " + err.Error())
+		}
+
+		patches = append(patches, patch)
+	}
+
+	return sprites, patches, nil
 }
 
 func getSpriteLumps(lumps []Lump) ([]Lump, error) {
@@ -163,6 +175,26 @@ func getSpriteLumps(lumps []Lump) ([]Lump, error) {
 	}
 
 	return spriteLumps, nil
+}
+
+func getPatchLumps(lumps []Lump) ([]Lump, error) {
+
+	var patchLumps []Lump
+
+	patchIdx, err := getPatchMarkerIndexes(lumps)
+	if err != nil {
+		return patchLumps, errors.New("[Error] getPatchLumps: Cannot get patch markers indexes")
+	}
+
+	if patchIdx.P_START != 0 && patchIdx.P_END != 0 {
+		for i := patchIdx.P_START + 1; i < patchIdx.P_END; i++ {
+			if lumps[i].LumpSize != 0 { // ignore submarkers
+				patchLumps = append(patchLumps, lumps[i])
+			}
+		}
+	}
+
+	return patchLumps, nil
 }
 
 func parsePatchLump(patchLump Lump) (Patch, error) {
@@ -417,6 +449,13 @@ func (wl *WADLoader) ExportAllSprites(outputFolder string) error {
 		exportErr := ExportSprite(sprite, wl.Palettes[0], outputFolder)
 		if exportErr != nil {
 			return errors.New("[Error] ExportAllSprites: Cannot export sprite - " + sprite.Name + " - " + exportErr.Error())
+		}
+	}
+
+	for _, patchSprites := range wl.Patches {
+		exportErr := ExportSprite(patchSprites, wl.Palettes[0], outputFolder)
+		if exportErr != nil {
+			return errors.New("[Error] ExportAllSprites: Cannot export patch sprite - " + patchSprites.Name + " - " + exportErr.Error())
 		}
 	}
 
