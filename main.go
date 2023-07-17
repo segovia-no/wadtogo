@@ -68,6 +68,10 @@ func main() {
 	}
 
 	if flagReader.exportMusic != "" {
-		wadLoader.ExportAllSongs(flagReader.exportMusic)
+		err := wadLoader.ExportAllSongs(flagReader.exportMusic)
+		if err != nil {
+			fmt.Println("[Error] Cannot export songs - " + err.Error())
+		}
+		fmt.Println("All songs exported successfully")
 	}
 }
