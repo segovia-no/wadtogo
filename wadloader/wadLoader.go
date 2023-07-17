@@ -15,10 +15,11 @@ type WADLoader struct {
 	WADHeader WADHeader
 	WADLumps WADLumps
 
-	Palette []Palette
+	Palettes []Palette
 	Maps []Map
 	Music []MusicLump
-	Graphics []Patch
+	Sprites []Patch
+	Patches []Patch
 }
 
 func (wl *WADLoader) OpenAndLoad(wadFilename string) {
@@ -190,4 +191,10 @@ func GetMusicLumps(wl WADLumps) ([]MusicLump, bool) {
 	}
 
 	return musicLumps, false
+}
+
+func (wl *WADLoader) LoadGraphics() {
+	sprites, patches := wl.DetectGraphics()
+	wl.Sprites = sprites
+	wl.Patches = patches
 }

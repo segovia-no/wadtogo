@@ -36,6 +36,14 @@ func main() {
 
 	if flagReader.exportSprites != "" {
 		wadLoader.LoadPalette()
+		wadLoader.LoadGraphics()
+
+		err := wadLoader.ExportAllSprites(flagReader.exportSprites)
+		if err != nil {
+			fmt.Println("[Error] Cannot export sprites - " + err.Error())
+		}
+
+		fmt.Println("Sprites exported successfully")
 	}
 
 	// Command execution

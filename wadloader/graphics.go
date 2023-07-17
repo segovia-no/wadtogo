@@ -5,7 +5,11 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"image"
+	"image/color"
+	"image/png"
 	"io"
+	"os"
 )
 
 // Graphic structs
@@ -27,7 +31,9 @@ type Patch struct {
 	PatchPosts []PatchPost
 }
 
-type PatchPost struct {
+type PatchPost []PatchPostSegment
+
+type PatchPostSegment struct {
 	TopOffset uint8
 	Length uint8
 	PixelData []byte
@@ -90,7 +96,7 @@ func (wl *WADLoader) LoadPalette() {
 				palettes = append(palettes, p)
 			}
 
-			wl.Palette = palettes
+			wl.Palettes = palettes
 			return
 		}
 	}
@@ -107,12 +113,20 @@ func (wl *WADLoader) DetectGraphics() ([]Patch, []Patch) {
 		return sprites, patches
 	}
 
-	// spriteLumps, err := getSpriteLumps(wl.WADLumps)
-	// if err != nil {
-	// 	return sprites, patches
-	// }
+	spriteLumps, err := getSpriteLumps(wl.WADLumps)
+	if err != nil {
+		return sprites, patches
+	}
 
+	for _, lump := range spriteLumps {
+		spritePatch, err := parsePatchLump(lump)
+		if err != nil {
+			fmt.Println("[Error] DetectGraphics: Cannot parse a sprite patch lump - " + err.Error())
+			return sprites, patches
+		}
 
+		sprites = append(sprites, spritePatch)
+	}
 
 	return sprites, patches
 }
@@ -165,45 +179,40 @@ func parsePatchLump(patchLump Lump) (Patch, error) {
 	lumpName := string(bytes.Trim(patchLump.LumpName[:], "\x00"))
 	patch.Name = lumpName
 
-	var sprHeader struct{
+	var patchHeader struct {
 		Width uint16
 		Height uint16
 		LeftOffset int16
 		TopOffset int16
 	}
 
-	errRead := binary.Read(wp.byteReader, binary.LittleEndian, &sprHeader)
+	errRead := binary.Read(wp.byteReader, binary.LittleEndian, &patchHeader)
 	if errRead != nil {
 		return patch, errors.New("[Error] parsePatchLump: Cannot parse header info of " + lumpName + " - " + errRead.Error())
 	}
 
-	patch.Width = sprHeader.Width
-	patch.Height = sprHeader.Height
-	patch.LeftOffset = sprHeader.LeftOffset
-	patch.TopOffset = sprHeader.TopOffset
+	patch.Width = patchHeader.Width
+	patch.Height = patchHeader.Height
+	patch.LeftOffset = patchHeader.LeftOffset
+	patch.TopOffset = patchHeader.TopOffset
 
-	var sprHeaderPostOffsets []uint32
-
+	var patchHeaderPostOffsets []uint32
 	for i := 0; i < int(patch.Width) - 1; i++ {
 		var postOffset uint32
 
 		errRead = binary.Read(wp.byteReader, binary.LittleEndian, &postOffset)
 		if errRead != nil {
-			return patch, errors.New("[Error] parsePatchLump: Cannot parse a post offset of " + lumpName + " - " + errRead.Error())
+			return patch, errors.New("[Error] parsePatchLump: Cannot parse a patch post offset of " + lumpName + " - " + errRead.Error())
 		}
 
-		sprHeaderPostOffsets = append(sprHeaderPostOffsets, postOffset)
+		patchHeaderPostOffsets = append(patchHeaderPostOffsets, postOffset)
 	}
 	
-	patch.PostOffsets = sprHeaderPostOffsets
+	patch.PostOffsets = patchHeaderPostOffsets
 
-	for _, pOff := range patch.PostOffsets {
-		pPost, err := parsePatchPost(patchLump.LumpOffset + pOff)
-
+	for _, currOffset := range patch.PostOffsets {
+		pPost, err := parsePatchPost(patchLump.LumpOffset + currOffset)
 		if err != nil {
-			if err.Error() == "PatchPostTerminator" {
-				break
-			}
 			return patch, errors.New("[Error] parsePatchLump: Cannot parse a patch post of " + lumpName + " - " + errRead.Error())
 		}
 
@@ -213,42 +222,75 @@ func parsePatchLump(patchLump Lump) (Patch, error) {
 	return patch, nil
 }
 
-func parsePatchPost(offset uint32) (PatchPost, error) {
+func parsePatchPost(lumpOffset uint32) (PatchPost, error) {
+
+	var patchPost PatchPost
+	var currInnerPostOffset uint32 = lumpOffset
+
+	for {
+		patchPostSeg, currOffset, err := parsePatchPostSegment(currInnerPostOffset)
+
+		if err != nil {
+			return patchPost, errors.New("[Error] parsePatchPost: Cannot parse a patch post segment - " + err.Error())
+		}
+
+		if (patchPostSeg.TopOffset == 255) {
+			break
+		}
+
+		patchPost = append(patchPost, patchPostSeg)
+		currInnerPostOffset = uint32(currOffset)
+	}
+
+	return patchPost, nil
+}
+
+func parsePatchPostSegment(offset uint32) (PatchPostSegment, int64, error) {
 	wp.checkValidByteReader()
 	wp.byteReader.Seek(int64(offset), io.SeekStart)
 
-	var pPost PatchPost
+	var pPost PatchPostSegment
 
-	var pPostPreDataFields struct{
+	var patchPostHeaderFields struct {
 		TopOffset uint8
 		Length uint8
 		PaddingPre uint8 // ignore data, only use is to move seeker
 	}
 
-	errRead := binary.Read(wp.byteReader, binary.LittleEndian, &pPostPreDataFields)
+	errRead := binary.Read(wp.byteReader, binary.LittleEndian, &patchPostHeaderFields)
 	if errRead != nil {
-		return pPost, errors.New("[Error] parsePatchPost: Cannot parse patch post header data - " + errRead.Error())
+		return pPost, 0, errors.New("[Error] parsePatchPostSegment: Cannot parse patch post header data - " + errRead.Error())
 	}
 
-	if pPostPreDataFields.TopOffset == 255 {
-		return pPost, errors.New("PatchPostTerminator")
+	pPost.TopOffset = patchPostHeaderFields.TopOffset
+	if pPost.TopOffset == 255 {
+		return pPost, 0, nil
 	}
 
-	pPost.TopOffset = pPostPreDataFields.TopOffset
-	pPost.Length = pPostPreDataFields.Length
+	pPost.Length = patchPostHeaderFields.Length
 
 	pixelData := make([]byte, pPost.Length)
 
 	errRead = binary.Read(wp.byteReader, binary.LittleEndian, &pixelData)
 	if errRead != nil {
-		return pPost, errors.New("[Error] parsePatchPost: Cannot parse patch post pixel data - " + errRead.Error())
+		return pPost, 0, errors.New("[Error] parsePatchPostSegment: Cannot parse patch post pixel data - " + errRead.Error())
 	}
 
 	pPost.PixelData = pixelData
-	
-	// note: ignoring post data padding since we'll be seeking to other posts using a defined offset
 
-	return pPost, nil
+	var paddingPost uint8
+	errRead = binary.Read(wp.byteReader, binary.LittleEndian, &paddingPost)
+	if errRead != nil {
+		return pPost, 0, errors.New("[Error] parsePatchPostSegment: Cannot parse patch post segment end padding - " + errRead.Error())
+	}
+
+	// get bytereader's current offset so next segment can be read
+	currOffset, seekErr := wp.byteReader.Seek(0, io.SeekCurrent)
+	if seekErr != nil {
+		return pPost, currOffset, errors.New("[Error] parsePatchPostSegment: Cannot get current offset of bytereader - " + seekErr.Error())
+	}
+
+	return pPost, currOffset, nil
 }
 
 func getSpriteMarkerIndexes(lumps []Lump) (spriteMarkerIndexes, error) {
@@ -350,4 +392,59 @@ func getPatchMarkerIndexes(lumps []Lump) (patchesMarkerIndexes, error) {
 	}
 
 	return patchIdx, nil
+}
+
+func (wl *WADLoader) ExportAllSprites(outputFolder string) error {
+
+	if outputFolder == "" {
+		return errors.New("[Error] createFolder: No folder name specified")
+	}
+
+	lastChar := outputFolder[len(outputFolder)-1:]
+	if lastChar == "/" {
+		outputFolder = outputFolder[:len(outputFolder)-1]
+	}
+
+	_, err := os.Stat(outputFolder)
+	if (err != nil) {
+		err = os.Mkdir(outputFolder, 0755)
+		if (err != nil) {
+			return errors.New("[Error] createFolder: Cannot create the target folder")
+		}
+	}
+
+	for _, sprite := range wl.Sprites {
+		exportErr := ExportSprite(sprite, wl.Palettes[0], outputFolder)
+		if exportErr != nil {
+			return errors.New("[Error] ExportAllSprites: Cannot export sprite - " + sprite.Name + " - " + exportErr.Error())
+		}
+	}
+
+	return nil
+}
+
+func ExportSprite(sprite Patch, palette Palette, outputFolder string) error {
+	spriteImg := image.NewRGBA(image.Rect(0, 0, int(sprite.Width), int(sprite.Height)))
+
+	for idx, post := range sprite.PatchPosts {
+		for _, postSegment := range post {
+			for i := 0; i < int(postSegment.Length); i++ {
+				x := idx
+				y := int(postSegment.TopOffset) + i
+				pixelColor := palette[postSegment.PixelData[i]]
+
+				spriteImg.Set(x, y, color.RGBA{pixelColor.Red, pixelColor.Green, pixelColor.Blue, 255})
+			}
+		}
+	}
+
+	spriteFile, err := os.Create(outputFolder + "/" + sprite.Name + ".png")
+	if err != nil {
+		return errors.New("[Error] ExportSprite: Cannot create the target file for the sprite - " + sprite.Name + " - " + err.Error())
+	}
+
+	defer spriteFile.Close()
+	png.Encode(spriteFile, spriteImg)
+
+	return nil
 }
