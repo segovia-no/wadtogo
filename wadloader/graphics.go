@@ -73,12 +73,12 @@ type patchesMarkerIndexes = struct {
 }
 
 // Graphic functions
-func (wl *WADLoader) LoadPalette() {
-	wp.checkValidByteReader()
+func (wl *WADLoader) DetectPalettes() ([]Palette, error) {
+
+	var palettes []Palette
 
 	if len(wl.WADLumps) < 1 {
-		fmt.Println("[Warn] LoadPalette: No Lumps loaded, cannot load palette!")
-		return
+		return palettes, errors.New("[Warn] DetectPalette: No Lumps loaded, cannot detect palettes")
 	}
 
 	for _, lump := range wl.WADLumps {
@@ -87,24 +87,25 @@ func (wl *WADLoader) LoadPalette() {
 		if string(lumpName) == "PLAYPAL" {
 			wp.byteReader.Seek(int64(lump.LumpOffset), io.SeekStart)
 
-			var palettes []Palette
-
 			for i := 0; i < 14; i++ {
 				var p Palette
 
 				errRead := binary.Read(wp.byteReader, binary.LittleEndian, &p)
 				if errRead != nil {
-					fmt.Println("[Error] LoadPalette: Cannot read one of the palettes")
-					return
+					return palettes, errors.New("[Error] DetectPalette: Cannot read one of the palettes, aborting palette detection")
 				}
 
 				palettes = append(palettes, p)
+				break
 			}
-
-			wl.Palettes = palettes
-			return
 		}
 	}
+
+	if len(palettes) < 1 {
+		return palettes, errors.New("[Warn] DetectPalette: Couldn't detect palettes")
+	}
+
+	return palettes, nil
 }
 
 func (wl *WADLoader) DetectGraphics() ([]Patch, []Patch, []Flat ,error) {
