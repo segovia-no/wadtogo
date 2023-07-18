@@ -272,7 +272,7 @@ func parsePatchLump(patchLump Lump) (Patch, error) {
 	patch.TopOffset = patchHeader.TopOffset
 
 	var patchHeaderPostOffsets []uint32
-	for i := 0; i < int(patch.Width) - 1; i++ {
+	for i := 0; i < int(patch.Width); i++ {
 		var postOffset uint32
 
 		errRead = binary.Read(wp.byteReader, binary.LittleEndian, &postOffset)
