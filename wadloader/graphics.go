@@ -96,8 +96,8 @@ func (wl *WADLoader) DetectPalettes() ([]Palette, error) {
 				}
 
 				palettes = append(palettes, p)
-				break
 			}
+			break
 		}
 	}
 
