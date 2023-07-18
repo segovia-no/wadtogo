@@ -20,6 +20,7 @@ type WADLoader struct {
 	Music []MusicLump
 	Sprites []Patch
 	Patches []Patch
+	Flats []Flat
 }
 
 func (wl *WADLoader) OpenAndLoad(wadFilename string) {
@@ -193,8 +194,24 @@ func GetMusicLumps(wl WADLumps) ([]MusicLump, bool) {
 	return musicLumps, false
 }
 
+func (wl *WADLoader) LoadPalettes() {
+	palettes, err := wl.DetectPalettes()
+	if err != nil {
+		fmt.Println("[Error] LoadPalettes: Cannot detect palettes lumps, aborting.", err)
+		os.Exit(1)
+	}
+
+	wl.Palettes = palettes
+}
+
 func (wl *WADLoader) LoadGraphics() {
-	sprites, patches := wl.DetectGraphics()
+	sprites, patches, flats, err := wl.DetectGraphics()
+	if err != nil {
+		fmt.Println("[Error] LoadGraphics: Cannot detect graphics lumps, aborting.", err)
+		os.Exit(1)
+	}
+
 	wl.Sprites = sprites
 	wl.Patches = patches
+	wl.Flats = flats
 }

@@ -2,6 +2,7 @@
 *.txt
 *.MIDI
 *.MUS
+*.png
 
 # Build files
 wadtogo-darwin-*

@@ -39,6 +39,11 @@ type PatchPostSegment struct {
 	PixelData []byte
 }
 
+type Flat struct {
+	Name string
+	PixelData [4096]byte
+}
+
 // Graphic indexes structs
 type spriteMarkerIndexes = struct {
 	S_START int
@@ -68,12 +73,12 @@ type patchesMarkerIndexes = struct {
 }
 
 // Graphic functions
-func (wl *WADLoader) LoadPalette() {
-	wp.checkValidByteReader()
+func (wl *WADLoader) DetectPalettes() ([]Palette, error) {
+
+	var palettes []Palette
 
 	if len(wl.WADLumps) < 1 {
-		fmt.Println("[Warn] LoadPalette: No Lumps loaded, cannot load palette!")
-		return
+		return palettes, errors.New("[Warn] DetectPalette: No Lumps loaded, cannot detect palettes")
 	}
 
 	for _, lump := range wl.WADLumps {
@@ -82,53 +87,83 @@ func (wl *WADLoader) LoadPalette() {
 		if string(lumpName) == "PLAYPAL" {
 			wp.byteReader.Seek(int64(lump.LumpOffset), io.SeekStart)
 
-			var palettes []Palette
-
 			for i := 0; i < 14; i++ {
 				var p Palette
 
 				errRead := binary.Read(wp.byteReader, binary.LittleEndian, &p)
 				if errRead != nil {
-					fmt.Println("[Error] LoadPalette: Cannot read one of the palettes")
-					return
+					return palettes, errors.New("[Error] DetectPalette: Cannot read one of the palettes, aborting palette detection")
 				}
 
 				palettes = append(palettes, p)
 			}
-
-			wl.Palettes = palettes
-			return
+			break
 		}
 	}
-}
 
-func (wl *WADLoader) DetectGraphics() ([]Patch, []Patch) {
-
-	var sprites []Patch
-	// var flats []Patch // TODO: this is not a patch, but raw data
-	var patches []Patch
-
-	if len(wl.WADLumps) < 1 {
-		fmt.Println("[Warn] DetectGraphics: No Lumps loaded, cannot detect graphic lumps!")
-		return sprites, patches
+	if len(palettes) < 1 {
+		return palettes, errors.New("[Warn] DetectPalette: Couldn't detect palettes")
 	}
 
+	return palettes, nil
+}
+
+func (wl *WADLoader) DetectGraphics() ([]Patch, []Patch, []Flat ,error) {
+
+	var sprites []Patch
+	var patches []Patch
+	var flats []Flat
+
+	if len(wl.WADLumps) < 1 {
+		return sprites, patches, flats, errors.New("[Warn] DetectGraphics: No Lumps loaded, cannot detect graphic lumps")
+	}
+
+	// Sprite loading
 	spriteLumps, err := getSpriteLumps(wl.WADLumps)
 	if err != nil {
-		return sprites, patches
+		return sprites, patches, flats, errors.New("[Warn] DetectGraphics: Cannot get sprite lumps")
 	}
 
 	for _, lump := range spriteLumps {
 		spritePatch, err := parsePatchLump(lump)
 		if err != nil {
-			fmt.Println("[Error] DetectGraphics: Cannot parse a sprite patch lump - " + err.Error())
-			return sprites, patches
+			return sprites, patches, flats, errors.New("[Error] DetectGraphics: Cannot parse a sprite patch lump - " + err.Error())
 		}
 
 		sprites = append(sprites, spritePatch)
 	}
 
-	return sprites, patches
+	// Patch sprite loading
+	patchLumps, err := getPatchLumps(wl.WADLumps)
+	if err != nil {
+		return sprites, patches, flats, errors.New("[Warn] DetectGraphics: Cannot detect patch lumps")
+	}
+
+	for _, lump := range patchLumps {
+		patch, err := parsePatchLump(lump)
+		if err != nil {
+			return sprites, patches, flats, errors.New("[Error] DetectGraphics: Cannot parse a patch lump - " + err.Error())
+		}
+
+		patches = append(patches, patch)
+	}
+
+	// Flat loading
+	flatLumps, err := getFlatLumps(wl.WADLumps)
+	if err != nil {
+		return sprites, patches, flats, errors.New("[Warn] DetectGraphics: Cannot detect flat lumps")
+	}
+
+	for _, lump := range flatLumps {
+		flat, err := parseFlatLump(lump)
+		if err != nil {
+			return sprites, patches, flats, errors.New("[Error] DetectGraphics: Cannot parse a patch lump - " + err.Error())
+		}
+
+		flats = append(flats, flat)
+	}
+
+	return sprites, patches, flats, nil
 }
 
 func getSpriteLumps(lumps []Lump) ([]Lump, error) {
@@ -165,6 +200,46 @@ func getSpriteLumps(lumps []Lump) ([]Lump, error) {
 	return spriteLumps, nil
 }
 
+func getPatchLumps(lumps []Lump) ([]Lump, error) {
+
+	var patchLumps []Lump
+
+	patchIdx, err := getPatchMarkerIndexes(lumps)
+	if err != nil {
+		return patchLumps, errors.New("[Error] getPatchLumps: Cannot get patch markers indexes")
+	}
+
+	if patchIdx.P_START != 0 && patchIdx.P_END != 0 {
+		for i := patchIdx.P_START + 1; i < patchIdx.P_END; i++ {
+			if lumps[i].LumpSize != 0 { // ignore submarkers
+				patchLumps = append(patchLumps, lumps[i])
+			}
+		}
+	}
+
+	return patchLumps, nil
+}
+
+func getFlatLumps(lumps []Lump) ([]Lump, error) {
+
+	var flatLumps []Lump
+
+	flatIdx, err := getFlatMarkerIndexes(lumps)
+	if err != nil {
+		return flatLumps, errors.New("[Error] getFlatLumps: Cannot get flat markers indexes")
+	}
+
+	if flatIdx.F_START != 0 && flatIdx.F_END != 0 {
+		for i := flatIdx.F_START + 1; i < flatIdx.F_END; i++ {
+			if lumps[i].LumpSize != 0 { // ignore submarkers
+				flatLumps = append(flatLumps, lumps[i])
+			}
+		}
+	}
+
+	return flatLumps, nil
+}
+
 func parsePatchLump(patchLump Lump) (Patch, error) {
 	wp.checkValidByteReader()
 
@@ -197,7 +272,7 @@ func parsePatchLump(patchLump Lump) (Patch, error) {
 	patch.TopOffset = patchHeader.TopOffset
 
 	var patchHeaderPostOffsets []uint32
-	for i := 0; i < int(patch.Width) - 1; i++ {
+	for i := 0; i < int(patch.Width); i++ {
 		var postOffset uint32
 
 		errRead = binary.Read(wp.byteReader, binary.LittleEndian, &postOffset)
@@ -243,6 +318,28 @@ func parsePatchPost(lumpOffset uint32) (PatchPost, error) {
 	}
 
 	return patchPost, nil
+}
+
+func parseFlatLump(flatLump Lump) (Flat, error) {
+	wp.checkValidByteReader()
+
+	var flat Flat
+
+	wp.byteReader.Seek(int64(flatLump.LumpOffset), io.SeekStart)
+
+	lumpName := string(bytes.Trim(flatLump.LumpName[:], "\x00"))
+	flat.Name = lumpName
+
+	var flatPixelData [4096]byte
+
+	errRead := binary.Read(wp.byteReader, binary.LittleEndian, &flatPixelData)
+	if errRead != nil {
+		return flat, errors.New("[Error] parseFlatLump: Cannot parse flat lump data - " + lumpName + " - " + errRead.Error())
+	}
+
+	flat.PixelData = flatPixelData
+
+	return flat, nil
 }
 
 func parsePatchPostSegment(offset uint32) (PatchPostSegment, int64, error) {
@@ -413,10 +510,27 @@ func (wl *WADLoader) ExportAllSprites(outputFolder string) error {
 		}
 	}
 
+	// Sprite exporting
 	for _, sprite := range wl.Sprites {
 		exportErr := ExportSprite(sprite, wl.Palettes[0], outputFolder)
 		if exportErr != nil {
 			return errors.New("[Error] ExportAllSprites: Cannot export sprite - " + sprite.Name + " - " + exportErr.Error())
+		}
+	}
+
+	// Patch sprite exporting
+	for _, patchSprites := range wl.Patches {
+		exportErr := ExportSprite(patchSprites, wl.Palettes[0], outputFolder)
+		if exportErr != nil {
+			return errors.New("[Error] ExportAllSprites: Cannot export patch sprite - " + patchSprites.Name + " - " + exportErr.Error())
+		}
+	}
+
+	// Flat exporting
+	for _, flat := range wl.Flats {
+		exportErr := ExportFlat(flat, wl.Palettes[0], outputFolder)
+		if exportErr != nil {
+			return errors.New("[Error] ExportAllSprites: Cannot export flat - " + flat.Name + " - " + exportErr.Error())
 		}
 	}
 
@@ -445,6 +559,27 @@ func ExportSprite(sprite Patch, palette Palette, outputFolder string) error {
 
 	defer spriteFile.Close()
 	png.Encode(spriteFile, spriteImg)
+
+	return nil
+}
+
+func ExportFlat(flat Flat, palette Palette, outputFolder string) error {
+	flatImg := image.NewRGBA(image.Rect(0, 0, 64, 64))
+
+	for y := 0; y < 64; y++ {
+		for x := 0; x < 64; x++ {
+			pixelColor := palette[flat.PixelData[x + y * 64]]
+			flatImg.Set(x, y, color.RGBA{pixelColor.Red, pixelColor.Green, pixelColor.Blue, 255})
+		}
+	}
+
+	flatFile, err := os.Create(outputFolder + "/" + flat.Name + ".png")
+	if err != nil {
+		return errors.New("[Error] ExportFlat: Cannot create the target file for the flat - " + flat.Name + " - " + err.Error())
+	}
+
+	defer flatFile.Close()
+	png.Encode(flatFile, flatImg)
 
 	return nil
 }
