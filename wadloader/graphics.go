@@ -16,60 +16,60 @@ import (
 type Palette [256]PaletteColor
 
 type PaletteColor struct {
-	Red uint8
+	Red   uint8
 	Green uint8
-	Blue uint8
+	Blue  uint8
 }
 
 type Patch struct {
-	Name string
-	Width uint16
-	Height uint16
-	LeftOffset int16
-	TopOffset int16
+	Name        string
+	Width       uint16
+	Height      uint16
+	LeftOffset  int16
+	TopOffset   int16
 	PostOffsets []uint32
-	PatchPosts []PatchPost
+	PatchPosts  []PatchPost
 }
 
 type PatchPost []PatchPostSegment
 
 type PatchPostSegment struct {
 	TopOffset uint8
-	Length uint8
+	Length    uint8
 	PixelData []byte
 }
 
 type Flat struct {
-	Name string
+	Name      string
 	PixelData [4096]byte
 }
 
 // Graphic indexes structs
 type spriteMarkerIndexes = struct {
-	S_START int
-	S_END int
+	S_START  int
+	S_END    int
 	SS_START int
-	SS_END int
+	SS_END   int
 }
 
 type flatMarkerIndexes = struct {
-	F_START int
-	F_END int
+	F_START  int
+	F_END    int
 	F1_START int
-	F1_END int
+	F1_END   int
 	F2_START int
-	F2_END int
+	F2_END   int
 }
 
 type patchesMarkerIndexes = struct {
-	P_START int
-	P_END int
+	P_START  int
+	P_END    int
 	P1_START int
-	P1_END int
+	P1_END   int
 	P2_START int
-	P2_END int
+	P2_END   int
 	P3_START int
-	P3_END int
+	P3_END   int
 }
 
 // Graphic functions
@@ -85,12 +85,12 @@ func (wl *WADLoader) DetectPalettes() ([]Palette, error) {
 		lumpName := string(bytes.Trim(lump.LumpName[:], "\x00"))
 
 		if string(lumpName) == "PLAYPAL" {
-			wp.byteReader.Seek(int64(lump.LumpOffset), io.SeekStart)
+			wl.WADParser.byteReader.Seek(int64(lump.LumpOffset), io.SeekStart)
 
 			for i := 0; i < 14; i++ {
 				var p Palette
 
-				errRead := binary.Read(wp.byteReader, binary.LittleEndian, &p)
+				errRead := binary.Read(wl.WADParser.byteReader, binary.LittleEndian, &p)
 				if errRead != nil {
 					return palettes, errors.New("[Error] DetectPalette: Cannot read one of the palettes, aborting palette detection")
 				}
@@ -108,7 +108,7 @@ func (wl *WADLoader) DetectPalettes() ([]Palette, error) {
 	return palettes, nil
 }
 
-func (wl *WADLoader) DetectGraphics() ([]Patch, []Patch, []Flat ,error) {
+func (wl *WADLoader) DetectGraphics() ([]Patch, []Patch, []Flat, error) {
 
 	var sprites []Patch
 	var patches []Patch
@@ -125,7 +125,7 @@ func (wl *WADLoader) DetectGraphics() ([]Patch, []Patch, []Flat ,error) {
 	}
 
 	for _, lump := range spriteLumps {
-		spritePatch, err := parsePatchLump(lump)
+		spritePatch, err := wl.parsePatchLump(lump)
 		if err != nil {
 			return sprites, patches, flats, errors.New("[Error] DetectGraphics: Cannot parse a sprite patch lump - " + err.Error())
 		}
@@ -140,7 +140,7 @@ func (wl *WADLoader) DetectGraphics() ([]Patch, []Patch, []Flat ,error) {
 	}
 
 	for _, lump := range patchLumps {
-		patch, err := parsePatchLump(lump)
+		patch, err := wl.parsePatchLump(lump)
 		if err != nil {
 			return sprites, patches, flats, errors.New("[Error] DetectGraphics: Cannot parse a patch lump - " + err.Error())
 		}
@@ -155,7 +155,7 @@ func (wl *WADLoader) DetectGraphics() ([]Patch, []Patch, []Flat ,error) {
 	}
 
 	for _, lump := range flatLumps {
-		flat, err := parseFlatLump(lump)
+		flat, err := wl.parseFlatLump(lump)
 		if err != nil {
 			return sprites, patches, flats, errors.New("[Error] DetectGraphics: Cannot parse a patch lump - " + err.Error())
 		}
@@ -240,8 +240,8 @@ func getFlatLumps(lumps []Lump) ([]Lump, error) {
 	return flatLumps, nil
 }
 
-func parsePatchLump(patchLump Lump) (Patch, error) {
-	wp.checkValidByteReader()
+func (wl *WADLoader) parsePatchLump(patchLump Lump) (Patch, error) {
+	wl.WADParser.checkValidByteReader()
 
 	var patch Patch
 
@@ -249,19 +249,19 @@ func parsePatchLump(patchLump Lump) (Patch, error) {
 		return patch, errors.New("[Error] parsePatchLump: Provided lump doesn't have enough bytes to parse header")
 	}
 
-	wp.byteReader.Seek(int64(patchLump.LumpOffset), io.SeekStart)
+	wl.WADParser.byteReader.Seek(int64(patchLump.LumpOffset), io.SeekStart)
 
 	lumpName := string(bytes.Trim(patchLump.LumpName[:], "\x00"))
 	patch.Name = lumpName
 
 	var patchHeader struct {
-		Width uint16
-		Height uint16
+		Width      uint16
+		Height     uint16
 		LeftOffset int16
-		TopOffset int16
+		TopOffset  int16
 	}
 
-	errRead := binary.Read(wp.byteReader, binary.LittleEndian, &patchHeader)
+	errRead := binary.Read(wl.WADParser.byteReader, binary.LittleEndian, &patchHeader)
 	if errRead != nil {
 		return patch, errors.New("[Error] parsePatchLump: Cannot parse header info of " + lumpName + " - " + errRead.Error())
 	}
@@ -275,18 +275,18 @@ func parsePatchLump(patchLump Lump) (Patch, error) {
 	for i := 0; i < int(patch.Width); i++ {
 		var postOffset uint32
 
-		errRead = binary.Read(wp.byteReader, binary.LittleEndian, &postOffset)
+		errRead = binary.Read(wl.WADParser.byteReader, binary.LittleEndian, &postOffset)
 		if errRead != nil {
 			return patch, errors.New("[Error] parsePatchLump: Cannot parse a patch post offset of " + lumpName + " - " + errRead.Error())
 		}
 
 		patchHeaderPostOffsets = append(patchHeaderPostOffsets, postOffset)
 	}
-	
+
 	patch.PostOffsets = patchHeaderPostOffsets
 
 	for _, currOffset := range patch.PostOffsets {
-		pPost, err := parsePatchPost(patchLump.LumpOffset + currOffset)
+		pPost, err := wl.parsePatchPost(patchLump.LumpOffset + currOffset)
 		if err != nil {
 			return patch, errors.New("[Error] parsePatchLump: Cannot parse a patch post of " + lumpName + " - " + errRead.Error())
 		}
@@ -297,19 +297,19 @@ func parsePatchLump(patchLump Lump) (Patch, error) {
 	return patch, nil
 }
 
-func parsePatchPost(lumpOffset uint32) (PatchPost, error) {
+func (wl *WADLoader) parsePatchPost(lumpOffset uint32) (PatchPost, error) {
 
 	var patchPost PatchPost
 	var currInnerPostOffset uint32 = lumpOffset
 
 	for {
-		patchPostSeg, currOffset, err := parsePatchPostSegment(currInnerPostOffset)
+		patchPostSeg, currOffset, err := wl.parsePatchPostSegment(currInnerPostOffset)
 
 		if err != nil {
 			return patchPost, errors.New("[Error] parsePatchPost: Cannot parse a patch post segment - " + err.Error())
 		}
 
-		if (patchPostSeg.TopOffset == 255) {
+		if patchPostSeg.TopOffset == 255 {
 			break
 		}
 
@@ -320,19 +320,19 @@ func parsePatchPost(lumpOffset uint32) (PatchPost, error) {
 	return patchPost, nil
 }
 
-func parseFlatLump(flatLump Lump) (Flat, error) {
-	wp.checkValidByteReader()
+func (wl *WADLoader) parseFlatLump(flatLump Lump) (Flat, error) {
+	wl.WADParser.checkValidByteReader()
 
 	var flat Flat
 
-	wp.byteReader.Seek(int64(flatLump.LumpOffset), io.SeekStart)
+	wl.WADParser.byteReader.Seek(int64(flatLump.LumpOffset), io.SeekStart)
 
 	lumpName := string(bytes.Trim(flatLump.LumpName[:], "\x00"))
 	flat.Name = lumpName
 
 	var flatPixelData [4096]byte
 
-	errRead := binary.Read(wp.byteReader, binary.LittleEndian, &flatPixelData)
+	errRead := binary.Read(wl.WADParser.byteReader, binary.LittleEndian, &flatPixelData)
 	if errRead != nil {
 		return flat, errors.New("[Error] parseFlatLump: Cannot parse flat lump data - " + lumpName + " - " + errRead.Error())
 	}
@@ -342,19 +342,19 @@ func parseFlatLump(flatLump Lump) (Flat, error) {
 	return flat, nil
 }
 
-func parsePatchPostSegment(offset uint32) (PatchPostSegment, int64, error) {
-	wp.checkValidByteReader()
-	wp.byteReader.Seek(int64(offset), io.SeekStart)
+func (wl *WADLoader) parsePatchPostSegment(offset uint32) (PatchPostSegment, int64, error) {
+	wl.WADParser.checkValidByteReader()
+	wl.WADParser.byteReader.Seek(int64(offset), io.SeekStart)
 
 	var pPost PatchPostSegment
 
 	var patchPostHeaderFields struct {
-		TopOffset uint8
-		Length uint8
+		TopOffset  uint8
+		Length     uint8
 		PaddingPre uint8 // ignore data, only use is to move seeker
 	}
 
-	errRead := binary.Read(wp.byteReader, binary.LittleEndian, &patchPostHeaderFields)
+	errRead := binary.Read(wl.WADParser.byteReader, binary.LittleEndian, &patchPostHeaderFields)
 	if errRead != nil {
 		return pPost, 0, errors.New("[Error] parsePatchPostSegment: Cannot parse patch post header data - " + errRead.Error())
 	}
@@ -368,7 +368,7 @@ func parsePatchPostSegment(offset uint32) (PatchPostSegment, int64, error) {
 
 	pixelData := make([]byte, pPost.Length)
 
-	errRead = binary.Read(wp.byteReader, binary.LittleEndian, &pixelData)
+	errRead = binary.Read(wl.WADParser.byteReader, binary.LittleEndian, &pixelData)
 	if errRead != nil {
 		return pPost, 0, errors.New("[Error] parsePatchPostSegment: Cannot parse patch post pixel data - " + errRead.Error())
 	}
@@ -376,13 +376,13 @@ func parsePatchPostSegment(offset uint32) (PatchPostSegment, int64, error) {
 	pPost.PixelData = pixelData
 
 	var paddingPost uint8
-	errRead = binary.Read(wp.byteReader, binary.LittleEndian, &paddingPost)
+	errRead = binary.Read(wl.WADParser.byteReader, binary.LittleEndian, &paddingPost)
 	if errRead != nil {
 		return pPost, 0, errors.New("[Error] parsePatchPostSegment: Cannot parse patch post segment end padding - " + errRead.Error())
 	}
 
 	// get bytereader's current offset so next segment can be read
-	currOffset, seekErr := wp.byteReader.Seek(0, io.SeekCurrent)
+	currOffset, seekErr := wl.WADParser.byteReader.Seek(0, io.SeekCurrent)
 	if seekErr != nil {
 		return pPost, currOffset, errors.New("[Error] parsePatchPostSegment: Cannot get current offset of bytereader - " + seekErr.Error())
 	}
@@ -392,7 +392,7 @@ func parsePatchPostSegment(offset uint32) (PatchPostSegment, int64, error) {
 
 func getSpriteMarkerIndexes(lumps []Lump) (spriteMarkerIndexes, error) {
 	var sprIdx spriteMarkerIndexes
-	
+
 	for idx, lump := range lumps {
 		lumpName := string(bytes.Trim(lump.LumpName[:], "\x00"))
 		switch lumpName {
@@ -427,7 +427,7 @@ func getSpriteMarkerIndexes(lumps []Lump) (spriteMarkerIndexes, error) {
 
 func getFlatMarkerIndexes(lumps []Lump) (flatMarkerIndexes, error) {
 	var flatIdx flatMarkerIndexes
-	
+
 	for idx, lump := range lumps {
 		lumpName := string(bytes.Trim(lump.LumpName[:], "\x00"))
 		switch lumpName {
@@ -458,7 +458,7 @@ func getFlatMarkerIndexes(lumps []Lump) (flatMarkerIndexes, error) {
 
 func getPatchMarkerIndexes(lumps []Lump) (patchesMarkerIndexes, error) {
 	var patchIdx patchesMarkerIndexes
-	
+
 	for idx, lump := range lumps {
 		lumpName := string(bytes.Trim(lump.LumpName[:], "\x00"))
 		switch lumpName {
@@ -503,9 +503,9 @@ func (wl *WADLoader) ExportAllSprites(outputFolder string) error {
 	}
 
 	_, err := os.Stat(outputFolder)
-	if (err != nil) {
+	if err != nil {
 		err = os.Mkdir(outputFolder, 0755)
-		if (err != nil) {
+		if err != nil {
 			return errors.New("[Error] createFolder: Cannot create the target folder")
 		}
 	}
@@ -568,7 +568,7 @@ func ExportFlat(flat Flat, palette Palette, outputFolder string) error {
 
 	for y := 0; y < 64; y++ {
 		for x := 0; x < 64; x++ {
-			pixelColor := palette[flat.PixelData[x + y * 64]]
+			pixelColor := palette[flat.PixelData[x+y*64]]
 			flatImg.Set(x, y, color.RGBA{pixelColor.Red, pixelColor.Green, pixelColor.Blue, 255})
 		}
 	}

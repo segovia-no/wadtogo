@@ -44,11 +44,11 @@ func (wp *WADParser) ExportSong(song *MusicLump, outputFolder string) error {
 
 	os.Remove(finalPath)
 	file, err := os.Create(finalPath)
-	
+
 	if err != nil {
 		return errors.New("[Error] ExportSong: Cannot create the target file")
 	}
-	
+
 	defer file.Close()
 
 	lumpData := make([]byte, song.lump.LumpSize)
@@ -64,7 +64,7 @@ func (wp *WADParser) ExportSong(song *MusicLump, outputFolder string) error {
 }
 
 func (wl *WADLoader) ExportAllSongs(folderName string) error {
-	wp.checkValidByteReader()
+	wl.WADParser.checkValidByteReader()
 
 	if len(wl.Music) < 1 {
 		return errors.New("[Error] ExportAllSongs: No music data inside WAD Loader")
@@ -80,15 +80,15 @@ func (wl *WADLoader) ExportAllSongs(folderName string) error {
 	}
 
 	_, err := os.Stat(folderName)
-	if (err != nil) {
+	if err != nil {
 		err = os.Mkdir(folderName, 0755)
-		if (err != nil) {
+		if err != nil {
 			return errors.New("[Error] ExportAllSongs: Cannot create the target folder")
 		}
 	}
 
 	for _, song := range wl.Music {
-		wp.ExportSong(&song, folderName)
+		wl.WADParser.ExportSong(&song, folderName)
 	}
 
 	return nil

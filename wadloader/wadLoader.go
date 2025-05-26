@@ -7,20 +7,19 @@ import (
 	"strings"
 )
 
-var wp WADParser
-
 type WADLoader struct {
-	WADBuffer []byte
+	WADBuffer   []byte
+	WADParser   WADParser
 	WADFilename string
-	WADHeader WADHeader
-	WADLumps WADLumps
+	WADHeader   WADHeader
+	WADLumps    WADLumps
 
 	Palettes []Palette
-	Maps []Map
-	Music []MusicLump
-	Sprites []Patch
-	Patches []Patch
-	Flats []Flat
+	Maps     []Map
+	Music    []MusicLump
+	Sprites  []Patch
+	Patches  []Patch
+	Flats    []Flat
 }
 
 func (wl *WADLoader) OpenAndLoad(wadFilename string) {
@@ -34,8 +33,8 @@ func (wl *WADLoader) OpenAndLoad(wadFilename string) {
 
 	wl.WADBuffer = wadBuffer
 
-	wp.setupByteReader(wl.WADBuffer)
-	wl.WADHeader = wp.readHeaderData()
+	wl.WADParser.setupByteReader(wl.WADBuffer)
+	wl.WADHeader = wl.WADParser.readHeaderData()
 }
 
 type WADLumps []Lump
@@ -49,7 +48,7 @@ func (wl *WADLoader) ReadWADLumps() {
 	dirOffset := int64(wl.WADHeader.LumpDirectoryOffset)
 
 	for i := 0; i < int(wl.WADHeader.LumpEntries); i++ {
-		dirData := wp.readLumpInfo(dirOffset + int64(i*16))
+		dirData := wl.WADParser.readLumpInfo(dirOffset + int64(i*16))
 		wl.WADLumps = append(wl.WADLumps, dirData)
 	}
 }
@@ -61,7 +60,7 @@ func (wl *WADLoader) LoadMaps() {
 
 type MapRawLumps struct {
 	MapName string
-	Lumps []Lump
+	Lumps   []Lump
 }
 
 func (wl *WADLoader) DetectMaps() []MapRawLumps {
@@ -72,7 +71,7 @@ func (wl *WADLoader) DetectMaps() []MapRawLumps {
 		fmt.Println("[Warn] DetectMaps: No Lumps detected loaded, cannot detect maps!")
 		return rawMaps
 	}
-	
+
 	// map lumps use a 0 byte marker and complies with the minimum types of lumps
 	for idx, lump := range wl.WADLumps {
 		if lump.LumpSize != 0 || !strings.HasPrefix(string(lump.LumpName[:]), "E") {
@@ -84,7 +83,7 @@ func (wl *WADLoader) DetectMaps() []MapRawLumps {
 		var neededMapLumps []string
 		neededMapLumps = append(neededMapLumps, MapLumpsNames...)
 
-		for _, nextLump := range wl.WADLumps[idx + 1:] {
+		for _, nextLump := range wl.WADLumps[idx+1:] {
 			if nextLump.LumpSize == 0 {
 				break
 			}
@@ -94,7 +93,7 @@ func (wl *WADLoader) DetectMaps() []MapRawLumps {
 			for i := 0; i < len(neededMapLumps); i++ {
 				if neededMapLumps[i] == string(nextLumpNameStr) {
 					currentMapLumps.Lumps = append(currentMapLumps.Lumps, nextLump)
-					neededMapLumps = append(neededMapLumps[:i], neededMapLumps[i+1:]... )
+					neededMapLumps = append(neededMapLumps[:i], neededMapLumps[i+1:]...)
 				}
 			}
 
@@ -124,21 +123,21 @@ func (wl *WADLoader) LoadMapLumps(allMapsRaw []MapRawLumps) {
 
 			switch lumpNameStr {
 			case "THINGS":
-				newMap.Things = wp.parseMapThings(currLump)
+				newMap.Things = wl.WADParser.parseMapThings(currLump)
 			case "LINEDEFS":
-				newMap.Linedefs = wp.parseMapLinedefs(currLump)
+				newMap.Linedefs = wl.WADParser.parseMapLinedefs(currLump)
 			case "SIDEDEFS":
-				newMap.Sidedefs = wp.parseMapSidedefs(currLump)
+				newMap.Sidedefs = wl.WADParser.parseMapSidedefs(currLump)
 			case "VERTEXES":
-				newMap.Vertexes = wp.parseMapVertexes(currLump)
+				newMap.Vertexes = wl.WADParser.parseMapVertexes(currLump)
 			case "SEGS":
-				newMap.Segs = wp.parseMapSegs(currLump)
+				newMap.Segs = wl.WADParser.parseMapSegs(currLump)
 			case "SSECTORS":
-				newMap.SSectors = wp.parseMapSSectors(currLump)
+				newMap.SSectors = wl.WADParser.parseMapSSectors(currLump)
 			case "NODES":
-				newMap.Nodes = wp.parseMapNodes(currLump)
+				newMap.Nodes = wl.WADParser.parseMapNodes(currLump)
 			case "SECTORS":
-				newMap.Sectors = wp.parseMapSectors(currLump)
+				newMap.Sectors = wl.WADParser.parseMapSectors(currLump)
 			case "REJECT":
 			case "BLOCKMAP":
 				// TODO: Missing rest of implementations
@@ -149,26 +148,25 @@ func (wl *WADLoader) LoadMapLumps(allMapsRaw []MapRawLumps) {
 	}
 }
 
-
 type MusicLump struct {
-	name string
+	name   string
 	format string
-	lump Lump
+	lump   Lump
 }
 
-func GetMusicLumps(wl WADLumps) ([]MusicLump, bool) {
-	if len(wl) < 1 {
+func (wl *WADLoader) GetMusicLumps() ([]MusicLump, bool) {
+	if len(wl.WADLumps) < 1 {
 		fmt.Println("[Warn] getMusicLumps: No Lumps detected loaded, cannot detect music!")
 		return nil, true
 	}
 
 	var musicLumps []MusicLump
 
-	for _, lump := range wl {
+	for _, lump := range wl.WADLumps {
 		if lump.LumpSize == 0 {
 			continue
 		}
-		
+
 		// music lumps names start with "D_"
 		lumpName := string(bytes.Trim(lump.LumpName[:], "\x00"))
 
@@ -176,16 +174,16 @@ func GetMusicLumps(wl WADLumps) ([]MusicLump, bool) {
 			continue
 		}
 
-		musicFormat, err := wp.getMusicFormatFromLump(&lump)
+		musicFormat, err := wl.WADParser.getMusicFormatFromLump(&lump)
 		if err != nil {
 			errinfo := fmt.Sprintf("[Warn] getMusicLumps: Cannot detect music format for %v, omitting this lump., %v", lumpName, err)
 			fmt.Println(errinfo)
 		}
 
-		curMusicLump := MusicLump {
-			name: lumpName,
+		curMusicLump := MusicLump{
+			name:   lumpName,
 			format: musicFormat,
-			lump: lump,
+			lump:   lump,
 		}
 
 		musicLumps = append(musicLumps, curMusicLump)
